@@ -5,6 +5,7 @@ Convert HTML article to EPUB format suitable for Kindle.
 
 import os
 import re
+import mimetypes
 from pathlib import Path
 from bs4 import BeautifulSoup
 from ebooklib import epub
@@ -76,22 +77,67 @@ def create_epub_from_html(html_file, output_file):
     content_div = soup.find('div', {'id': 'sbo-rt-content'})
     if not content_div:
         content_div = soup.find('div', {'id': 'book-content'})
+    if not content_div:
+        # If no specific div found, use the body
+        content_div = soup.body if soup.body else soup
     
-    if content_div:
-        # Remove link tags (stylesheets)
-        for link in content_div.find_all('link'):
-            link.decompose()
+    # Remove link tags (stylesheets)
+    for link in content_div.find_all('link'):
+        link.decompose()
+    
+    # Process images: extract them and update src paths
+    image_map = {}  # Maps original src to EPUB filename
+    img_counter = 1
+    
+    for img in content_div.find_all('img'):
+        src = img.get('src', '')
+        if not src:
+            continue
         
-        # Create chapter
-        chapter_html = str(content_div)
+        # Normalize the path
+        img_path = src.replace('./', '')
+        img_path = os.path.join(os.path.dirname(html_file), img_path)
         
-        # Create a chapter
-        c1 = epub.EpubHtml()
-        c1.file_name = 'chap_01.xhtml'
-        c1.title = 'Trade-offs in Data Systems Architecture'
-        c1.content = chapter_html
-        
-        book.add_item(c1)
+        # Check if file exists
+        if os.path.exists(img_path):
+            # Get original filename
+            original_name = os.path.basename(img_path)
+            epub_img_name = f'images/{original_name}'
+            
+            # Read the image
+            with open(img_path, 'rb') as img_file:
+                img_data = img_file.read()
+            
+            # Add image to EPUB
+            img_item = epub.EpubImage()
+            img_item.file_name = epub_img_name
+            img_item.content = img_data
+            
+            # Set correct media type
+            mime_type, _ = mimetypes.guess_type(img_path)
+            if mime_type:
+                img_item.media_type = mime_type
+            
+            book.add_item(img_item)
+            image_map[src] = epub_img_name
+            
+            # Update img src to point to EPUB resource
+            img['src'] = epub_img_name
+            img_counter += 1
+    
+    # Create chapter
+    chapter_html = str(content_div)
+    
+    # Create a chapter
+    c1 = epub.EpubHtml()
+    c1.file_name = 'chap_01.xhtml'
+    c1.title = 'Trade-offs in Data Systems Architecture'
+    c1.content = chapter_html
+    
+    book.add_item(c1)
+    
+    # Create spine (list of content documents in reading order)
+    book.spine = ['nav', c1]
     
     # Add basic CSS
     style = epub.EpubItem()
@@ -154,7 +200,7 @@ def create_epub_from_html(html_file, output_file):
     book.add_item(style)
     
     # Define Table of Contents
-    book.toc = ('Trade-offs in Data Systems Architecture',)
+    book.toc = (c1,)
     
     # Add navigation files
     book.add_item(epub.EpubNcx())

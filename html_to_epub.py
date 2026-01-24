@@ -123,6 +123,13 @@ def create_epub_from_html(html_file, output_file):
             
             # Update img src to point to EPUB resource
             img['src'] = epub_img_name
+            
+            # Remove fixed width/height to allow responsive sizing
+            if 'width' in img.attrs:
+                del img['width']
+            if 'height' in img.attrs:
+                del img['height']
+            
             img_counter += 1
     
     # Create chapter
@@ -158,6 +165,12 @@ def create_epub_from_html(html_file, output_file):
     p {
         margin: 0.5em 0;
         text-align: justify;
+    }
+    img {
+        max-width: 100% !important;
+        height: auto !important;
+        display: block;
+        margin: 0.5em auto;
     }
     a {
         color: #0066cc;

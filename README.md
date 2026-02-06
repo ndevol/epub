@@ -2,7 +2,12 @@
 
 ## HTML 
 
-Prepare an HTML with the desired content in the body:
+Prepare an HTML with the desired content in body tags:
+
+<body>
+</body>
+
+To view with stylesheet, add header:
 
 <!DOCTYPE html>
 <html lang="en">

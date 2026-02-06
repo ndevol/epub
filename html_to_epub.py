@@ -11,19 +11,6 @@ from bs4 import BeautifulSoup
 from ebooklib import epub
 
 
-def extract_text(element):
-    """Recursively extract text from an element."""
-    if isinstance(element, str):
-        return element
-    if element.name is None:
-        return element.string or ""
-
-    text = ""
-    for content in element.contents:
-        text += extract_text(content)
-    return text
-
-
 def clean_html_for_epub(html_content):
     """Clean and prepare HTML content for EPUB."""
     soup = BeautifulSoup(html_content, "html.parser")
@@ -55,28 +42,27 @@ def create_epub_from_html(html_file, output_file):
         html_file: Path to the HTML file
         output_file: Path where the EPUB will be saved
     """
-
-    # Read the HTML file
     with open(html_file, "r", encoding="utf-8") as f:
         html_content = f.read()
 
-    # Parse and clean the HTML
     soup = BeautifulSoup(html_content, "html.parser")
 
-    # Create EPUB book
     book = epub.EpubBook()
 
     # Set metadata
     book.set_identifier("ddia-ch1-" + datetime.now().strftime("%Y%m%d%H%M%S"))
-    book.set_title("Trade-offs in Data Systems Architecture")
+    book.set_title("Designing Data-Intensive Applications, 2nd Edition")
     book.set_language("en")
     book.add_author("Martin Kleppmann")
+    book.add_author("Chris Riccomini")
 
     # Get the main content
     content_div = soup.find("div", {"id": "sbo-rt-content"})
     if not content_div:
+        print("Warning: No div with id 'sbo-rt-content' found, trying 'book-content'...")
         content_div = soup.find("div", {"id": "book-content"})
     if not content_div:
+        print("Warning: No specific content div found, using body or entire document...")
         # If no specific div found, use the body
         content_div = soup.body if soup.body else soup
 
@@ -85,9 +71,6 @@ def create_epub_from_html(html_file, output_file):
         link.decompose()
 
     # Process images: extract them and update src paths
-    image_map = {}  # Maps original src to EPUB filename
-    img_counter = 1
-
     for img in content_div.find_all("img"):
         src = img.get("src", "")
         if not src:
@@ -97,48 +80,42 @@ def create_epub_from_html(html_file, output_file):
         img_path = src.replace("./", "")
         img_path = os.path.join(os.path.dirname(html_file), img_path)
 
-        # Check if file exists
-        if os.path.exists(img_path):
-            # Get original filename
-            original_name = os.path.basename(img_path)
-            epub_img_name = f"images/{original_name}"
+        if not os.path.exists(img_path):
+            continue
 
-            # Read the image
-            with open(img_path, "rb") as img_file:
-                img_data = img_file.read()
+        # Get original filename
+        original_name = os.path.basename(img_path)
+        epub_img_name = f"images/{original_name}"
 
-            # Add image to EPUB
-            img_item = epub.EpubImage()
-            img_item.file_name = epub_img_name
-            img_item.content = img_data
+        with open(img_path, "rb") as img_file:
+            img_data = img_file.read()
 
-            # Set correct media type
-            mime_type, _ = mimetypes.guess_type(img_path)
-            if mime_type:
-                img_item.media_type = mime_type
+        # Add image to EPUB
+        img_item = epub.EpubImage()
+        img_item.file_name = epub_img_name
+        img_item.content = img_data
 
-            book.add_item(img_item)
-            image_map[src] = epub_img_name
+        # Set correct media type
+        mime_type, _ = mimetypes.guess_type(img_path)
+        if mime_type:
+            img_item.media_type = mime_type
 
-            # Update img src to point to EPUB resource
-            img["src"] = epub_img_name
+        book.add_item(img_item)
 
-            # Remove fixed width/height to allow responsive sizing
-            if "width" in img.attrs:
-                del img["width"]
-            if "height" in img.attrs:
-                del img["height"]
+        # Update img src to point to EPUB resource
+        img["src"] = epub_img_name
 
-            img_counter += 1
-
-    # Create chapter
-    chapter_html = str(content_div)
+        # Remove fixed width/height to allow responsive sizing
+        if "width" in img.attrs:
+            del img["width"]
+        if "height" in img.attrs:
+            del img["height"]
 
     # Create a chapter
     c1 = epub.EpubHtml()
     c1.file_name = "chap_01.xhtml"
     c1.title = "Trade-offs in Data Systems Architecture"
-    c1.content = chapter_html
+    c1.content = str(content_div)
 
     book.add_item(c1)
 
@@ -163,7 +140,6 @@ def create_epub_from_html(html_file, output_file):
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
 
-    # Write the EPUB file
     epub.write_epub(output_file, book, {})
     print(f"✓ EPUB created successfully: {output_file}")
 

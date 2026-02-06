@@ -14,8 +14,8 @@ p {
     text-align: justify;
 }
 img {
-    max-width: 100% !important;
-    height: auto !important;
+    max-width: 100%;
+    height: auto;
     display: block;
     margin: 0.5em auto;
 }

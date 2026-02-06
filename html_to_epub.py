@@ -5,6 +5,7 @@ Convert HTML article to EPUB format suitable for Kindle.
 
 import os
 import mimetypes
+import shutil
 from datetime import datetime
 from dataclasses import dataclass
 
@@ -43,7 +44,9 @@ def clean_html_for_epub(html_content):
     return str(soup.body) if soup.body else str(soup)
 
 
-def create_epub_from_html(html_file: str, output_file: str, meta_data: MetaData) -> None:
+def create_epub_from_html(
+    html_file: str, output_dir: str, output_file: str, meta_data: MetaData
+) -> None:
     """
     Convert an HTML file to EPUB format.
 
@@ -51,35 +54,25 @@ def create_epub_from_html(html_file: str, output_file: str, meta_data: MetaData)
         html_file: Path to the HTML file
         output_file: Path where the EPUB will be saved
     """
-    with open(html_file, "r", encoding="utf-8") as f:
-        html_content = f.read()
-
-    soup = BeautifulSoup(html_content, "html.parser")
-
     book = epub.EpubBook()
-
-    # Set metadata
     book.set_identifier(meta_data.identifier_root + datetime.now().strftime("%Y%m%d%H%M%S"))
     book.set_title(meta_data.title)
     book.set_language(meta_data.language)
     for author in meta_data.authors:
         book.add_author(author)
 
-    # Get the main content
-    content_div = soup.find("div", {"id": "sbo-rt-content"})
-    if not content_div:
-        print("Warning: No div with id 'sbo-rt-content' found, trying 'book-content'...")
-        content_div = soup.find("div", {"id": "book-content"})
-    if not content_div:
-        print("Warning: No specific content div found, using body or entire document...")
-        # If no specific div found, use the body
-        content_div = soup.body if soup.body else soup
+    with open(html_file, "r", encoding="utf-8") as f:
+        html_content = f.read()
+
+    soup = BeautifulSoup(html_content, "html.parser")
+    content_div = soup.body if soup.body else soup
 
     # Remove link tags (stylesheets)
     for link in content_div.find_all("link"):
         link.decompose()
 
     # Process images: extract them and update src paths
+    os.makedirs(os.path.join(output_dir, "images"), exist_ok=True)
     for img in content_div.find_all("img"):
         src = img.get("src", "")
         if not src:
@@ -92,14 +85,15 @@ def create_epub_from_html(html_file: str, output_file: str, meta_data: MetaData)
         if not os.path.exists(img_path):
             continue
 
-        # Get original filename
         original_name = os.path.basename(img_path)
-        epub_img_name = f"images/{original_name}"
+        new_img_path = os.path.join(output_dir, "images", original_name)
+        shutil.copy(img_path, new_img_path)
 
-        with open(img_path, "rb") as img_file:
+        with open(new_img_path, "rb") as img_file:
             img_data = img_file.read()
 
         # Add image to EPUB
+        epub_img_name = f"images/{original_name}"
         img_item = epub.EpubImage()
         img_item.file_name = epub_img_name
         img_item.content = img_data
@@ -149,13 +143,17 @@ def create_epub_from_html(html_file: str, output_file: str, meta_data: MetaData)
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
 
-    epub.write_epub(output_file, book, {})
+    output_path = os.path.join(output_dir, output_file)
+    epub.write_epub(output_path, book, {})
     print(f"✓ EPUB created successfully: {output_file}")
 
 
 def main():
     input_file = "ddia/Ch1/article.html"
-    output_file = "ddia/Ch1/ddia-chapter1.epub"
+    output_dir = "ddia/Ch1/"
+
+    output_file = "ddia-chapter1.epub"
+
     meta_data = MetaData(
         identifier_root="ddia-ch1",
         title="Designing Data-Intensive Applications, 2nd Edition",
@@ -166,9 +164,10 @@ def main():
     if not os.path.exists(input_file):
         raise FileNotFoundError(f"Input file '{input_file}' not found.")
 
-    print(f"Converting {input_file} to EPUB...")
-    create_epub_from_html(input_file, output_file, meta_data)
-    print(f"File size: {os.path.getsize(output_file) / 1024:.1f} KB")
+    os.makedirs(output_dir, exist_ok=True)
+    create_epub_from_html(input_file, output_dir, output_file, meta_data)
+    output_path = os.path.join(output_dir, output_file)
+    print(f"File size: {os.path.getsize(output_path) / 1024:.1f} KB")
 
 if __name__ == "__main__":
     main()

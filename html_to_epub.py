@@ -146,68 +146,13 @@ def create_epub_from_html(html_file, output_file):
     book.spine = ["nav", c1]
 
     # Add basic CSS
+    with open("style/main.css", "r", encoding="utf-8") as f:
+        style_content = f.read()
+
     style = epub.EpubItem()
     style.file_name = "style/main.css"
     style.media_type = "text/css"
-    style.content = """
-    body {
-        font-family: Georgia, serif;
-        line-height: 1.6;
-        margin: 0;
-        padding: 0.5em;
-    }
-    h1, h2, h3, h4, h5, h6 {
-        font-family: Arial, sans-serif;
-        margin-top: 0.5em;
-        margin-bottom: 0.5em;
-    }
-    p {
-        margin: 0.5em 0;
-        text-align: justify;
-    }
-    img {
-        max-width: 100% !important;
-        height: auto !important;
-        display: block;
-        margin: 0.5em auto;
-    }
-    a {
-        color: #0066cc;
-        text-decoration: none;
-    }
-    table {
-        border-collapse: collapse;
-        width: 100%;
-        margin: 1em 0;
-    }
-    th, td {
-        border: 1px solid #999;
-        padding: 0.5em;
-        text-align: left;
-    }
-    th {
-        background-color: #f0f0f0;
-    }
-    blockquote {
-        margin: 1em 1.5em;
-        padding-left: 1em;
-        border-left: 3px solid #999;
-        font-style: italic;
-    }
-    .sidebar {
-        border: 1px solid #ccc;
-        padding: 1em;
-        margin: 1em 0;
-        background-color: #f9f9f9;
-    }
-    ul, ol {
-        margin: 0.5em 0;
-        padding-left: 2em;
-    }
-    li {
-        margin: 0.25em 0;
-    }
-    """
+    style.content = style_content
 
     book.add_item(style)
 

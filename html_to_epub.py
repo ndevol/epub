@@ -6,9 +6,18 @@ Convert HTML article to EPUB format suitable for Kindle.
 import os
 import mimetypes
 from datetime import datetime
+from dataclasses import dataclass
 
 from bs4 import BeautifulSoup
 from ebooklib import epub
+
+
+@dataclass
+class MetaData:
+    identifier_root: str
+    title: str
+    language: str
+    authors: list[str]
 
 
 def clean_html_for_epub(html_content):
@@ -34,7 +43,7 @@ def clean_html_for_epub(html_content):
     return str(soup.body) if soup.body else str(soup)
 
 
-def create_epub_from_html(html_file, output_file):
+def create_epub_from_html(html_file: str, output_file: str, meta_data: MetaData) -> None:
     """
     Convert an HTML file to EPUB format.
 
@@ -50,11 +59,11 @@ def create_epub_from_html(html_file, output_file):
     book = epub.EpubBook()
 
     # Set metadata
-    book.set_identifier("ddia-ch1-" + datetime.now().strftime("%Y%m%d%H%M%S"))
-    book.set_title("Designing Data-Intensive Applications, 2nd Edition")
-    book.set_language("en")
-    book.add_author("Martin Kleppmann")
-    book.add_author("Chris Riccomini")
+    book.set_identifier(meta_data.identifier_root + datetime.now().strftime("%Y%m%d%H%M%S"))
+    book.set_title(meta_data.title)
+    book.set_language(meta_data.language)
+    for author in meta_data.authors:
+        book.add_author(author)
 
     # Get the main content
     content_div = soup.find("div", {"id": "sbo-rt-content"})
@@ -145,12 +154,18 @@ def create_epub_from_html(html_file, output_file):
 
 
 if __name__ == "__main__":
-    input_file = "article.html"
-    output_file = "ddia-chapter1.epub"
+    input_file = "ddia/Ch1/article.html"
+    output_file = "ddia/Ch1/ddia-chapter1.epub"
+    meta_data = MetaData(
+        identifier_root="ddia-ch1",
+        title="Designing Data-Intensive Applications, 2nd Edition",
+        language="en",
+        authors=["Martin Kleppmann", "Chris Riccomini"],
+    )
 
-    if os.path.exists(input_file):
-        print(f"Converting {input_file} to EPUB...")
-        create_epub_from_html(input_file, output_file)
-        print(f"File size: {os.path.getsize(output_file) / 1024:.1f} KB")
-    else:
-        print(f"Error: {input_file} not found")
+    if not os.path.exists(input_file):
+        raise FileNotFoundError(f"Input file '{input_file}' not found.")
+
+    print(f"Converting {input_file} to EPUB...")
+    create_epub_from_html(input_file, output_file, meta_data)
+    print(f"File size: {os.path.getsize(output_file) / 1024:.1f} KB")

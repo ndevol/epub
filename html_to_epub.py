@@ -153,7 +153,7 @@ def create_epub_from_html(html_file: str, output_file: str, meta_data: MetaData)
     print(f"✓ EPUB created successfully: {output_file}")
 
 
-if __name__ == "__main__":
+def main():
     input_file = "ddia/Ch1/article.html"
     output_file = "ddia/Ch1/ddia-chapter1.epub"
     meta_data = MetaData(
@@ -169,3 +169,6 @@ if __name__ == "__main__":
     print(f"Converting {input_file} to EPUB...")
     create_epub_from_html(input_file, output_file, meta_data)
     print(f"File size: {os.path.getsize(output_file) / 1024:.1f} KB")
+
+if __name__ == "__main__":
+    main()

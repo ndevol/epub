@@ -3,17 +3,8 @@
 
 import os
 import shutil
-from dataclasses import dataclass
 
 from bs4 import BeautifulSoup
-
-
-@dataclass
-class MetaData:
-    identifier_root: str
-    title: str
-    language: str
-    authors: list[str]
 
 
 def clean_html_for_epub(html_content):

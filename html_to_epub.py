@@ -6,22 +6,13 @@ Convert HTML article to EPUB format suitable for Kindle.
 import os
 import mimetypes
 from datetime import datetime
-from dataclasses import dataclass
 
 from bs4 import BeautifulSoup
 from ebooklib import epub
 
 
-@dataclass
-class MetaData:
-    identifier_root: str
-    title: str
-    language: str
-    authors: list[str]
-
-
 def create_epub_from_html(
-    html_file: str, output_dir: str, output_file: str, meta_data: MetaData
+    book: epub.EpubBook, html_file: str, output_dir: str, output_file: str
 ) -> None:
     """
     Convert an HTML file to EPUB format.
@@ -30,12 +21,6 @@ def create_epub_from_html(
         html_file: Path to the HTML file
         output_file: Path where the EPUB will be saved
     """
-    book = epub.EpubBook()
-    book.set_identifier(meta_data.identifier_root + datetime.now().strftime("%Y%m%d%H%M%S"))
-    book.set_title(meta_data.title)
-    book.set_language(meta_data.language)
-    for author in meta_data.authors:
-        book.add_author(author)
 
     with open(html_file, "r", encoding="utf-8") as f:
         html_content = f.read()
@@ -103,21 +88,21 @@ def create_epub_from_html(
 def main():
     input_file = "ddia/Ch1/processed_article.html"
     output_dir = "ddia/"
-
     output_file = "ddia-chapter1.epub"
-
-    meta_data = MetaData(
-        identifier_root="ddia-",
-        title="Designing Data-Intensive Applications, 2nd Edition",
-        language="en",
-        authors=["Martin Kleppmann", "Chris Riccomini"],
-    )
 
     if not os.path.exists(input_file):
         raise FileNotFoundError(f"Input file '{input_file}' not found.")
 
+    # Create EPUB book instance with metadata
+    book = epub.EpubBook()
+    book.set_identifier("ddia-" + datetime.now().strftime("%Y%m%d%H%M%S"))
+    book.set_title("Designing Data-Intensive Applications, 2nd Edition")
+    book.set_language("en")
+    for author in ["Martin Kleppmann", "Chris Riccomini"]:
+        book.add_author(author)
+
     os.makedirs(output_dir, exist_ok=True)
-    create_epub_from_html(input_file, output_dir, output_file, meta_data)
+    create_epub_from_html(book, input_file, output_dir, output_file)
     output_path = os.path.join(output_dir, output_file)
     print(f"File size: {os.path.getsize(output_path) / 1024:.1f} KB")
 

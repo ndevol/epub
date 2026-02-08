@@ -1,16 +1,11 @@
 #!/usr/bin/env python3
-"""
-Convert HTML article to EPUB format suitable for Kindle.
-"""
+"""Prepare html data for use in epub."""
 
 import os
-import mimetypes
 import shutil
-from datetime import datetime
 from dataclasses import dataclass
 
 from bs4 import BeautifulSoup
-from ebooklib import epub
 
 
 @dataclass
@@ -70,7 +65,7 @@ def create_epub_from_html(html_file: str, output_dir: str) -> None:
             continue
 
         # Normalize the path
-        img_path = src.replace("./", "")
+        img_path = src.replace("./", "")  # pyright: ignore
         img_path = os.path.join(os.path.dirname(html_file), img_path)
 
         if not os.path.exists(img_path):
@@ -96,7 +91,7 @@ def create_epub_from_html(html_file: str, output_dir: str) -> None:
     print(f"✓ Processed HTML saved: {processed_html_output_path}")
 
 def main():
-    input_file = "ddia/Ch1/article.html"
+    input_file = "ddia/article.html"
     output_dir = "ddia/Ch1/"
 
     if not os.path.exists(input_file):

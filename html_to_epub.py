@@ -11,36 +11,40 @@ from bs4 import BeautifulSoup
 from ebooklib import epub
 
 
-def create_epub_from_html(
-    book: epub.EpubBook, html_file: str, output_dir: str, output_file: str
-) -> None:
+def create_epub_from_html(book: epub.EpubBook, book_dir: str, chapters: list[str]) -> None:
     """
-    Convert an HTML file to EPUB format.
+    Convert HTML files in a book directory to EPUB format.
 
     Args:
         html_file: Path to the HTML file
         output_file: Path where the EPUB will be saved
     """
+    HTML_NAME_TEMPLATE = "Ch{ch_num}/processed_article.html"
 
-    with open(html_file, "r", encoding="utf-8") as f:
-        html_content = f.read()
+    chapter_list = []
+    for ch_num, chapter_title in enumerate(chapters, start=1):
+        html_file = os.path.join(book_dir, HTML_NAME_TEMPLATE.format(ch_num=ch_num))
 
-    soup = BeautifulSoup(html_content, "html.parser")
-    content_div = soup.body if soup.body else soup
+        with open(html_file, "r", encoding="utf-8") as f:
+            html_content = f.read()
 
-    for img_item in extract_img_items(content_div, html_file):
-        book.add_item(img_item)
+        soup = BeautifulSoup(html_content, "html.parser")
+        content_div = soup.body if soup.body else soup
+
+        for img_item in extract_img_items(content_div, html_file):
+            book.add_item(img_item)
 
 
-    c1 = epub.EpubHtml()
-    c1.file_name = "chap_01.xhtml"
-    c1.title = "Trade-offs in Data Systems Architecture"
-    c1.content = str(content_div)
+        c = epub.EpubHtml()
+        c.file_name = f"chap_{ch_num:02d}.xhtml"
+        c.title = chapter_title
+        c.content = str(content_div)
 
-    book.add_item(c1)
+        book.add_item(c)
+        chapter_list.append(c)
 
     # Create spine (list of content documents in reading order)
-    book.spine = ["nav", c1]
+    book.spine = ["nav"] + chapter_list
 
     # Add basic CSS
     with open("style/main.css", "r", encoding="utf-8") as f:
@@ -54,15 +58,16 @@ def create_epub_from_html(
     book.add_item(style)
 
     # Define Table of Contents
-    book.toc = (c1,)  # pyright: ignore
+    book.toc = tuple(chapter_list)  # pyright: ignore
 
     # Add navigation files
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
 
-    output_path = os.path.join(output_dir, output_file)
+    output_file = f"{book_dir}.epub"
+    output_path = os.path.join(book_dir, output_file)
     epub.write_epub(output_path, book, {})
-    print(f"✓ EPUB created successfully: {output_file}")
+    print(f"✓ {os.path.getsize(output_path) / 1024:.1f} KB EPUB created")
 
 
 def extract_img_items(content_div, html_file: str) -> list[epub.EpubImage]:
@@ -97,12 +102,12 @@ def extract_img_items(content_div, html_file: str) -> list[epub.EpubImage]:
 
 
 def main():
-    input_file = "ddia/Ch1/processed_article.html"
-    output_dir = "ddia/"
-    output_file = "ddia-chapter1.epub"
+    book_dir = "ddia"
 
-    if not os.path.exists(input_file):
-        raise FileNotFoundError(f"Input file '{input_file}' not found.")
+    # List chapter titles. Folders are expected like "Ch1", "Ch2", etc.
+    chapters = [
+        "Trade-offs in Data Systems Architecture"
+    ]
 
     # Create EPUB book instance with metadata
     book = epub.EpubBook()
@@ -112,10 +117,7 @@ def main():
     for author in ["Martin Kleppmann", "Chris Riccomini"]:
         book.add_author(author)
 
-    os.makedirs(output_dir, exist_ok=True)
-    create_epub_from_html(book, input_file, output_dir, output_file)
-    output_path = os.path.join(output_dir, output_file)
-    print(f"File size: {os.path.getsize(output_path) / 1024:.1f} KB")
+    create_epub_from_html(book, book_dir, chapters)
 
 if __name__ == "__main__":
     main()

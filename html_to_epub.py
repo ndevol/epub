@@ -28,27 +28,7 @@ def create_epub_from_html(
     soup = BeautifulSoup(html_content, "html.parser")
     content_div = soup.body if soup.body else soup
 
-    for img in content_div.find_all("img"):
-        src = str(img.get("src", ""))
-        name = os.path.basename(src)
-        if not src:
-            continue
-
-        html_dir = os.path.dirname(html_file)
-        with open(os.path.join(html_dir, src), "rb") as img_file:
-            img_data = img_file.read()
-
-        # Add image to EPUB
-        epub_img_name = f"images/{name}"
-        img_item = epub.EpubImage()
-        img_item.file_name = epub_img_name
-        img_item.content = img_data
-
-        # Set correct media type
-        mime_type, _ = mimetypes.guess_type(src)
-        if mime_type:
-            img_item.media_type = mime_type
-
+    for img_item in extract_img_items(content_div, html_file):
         book.add_item(img_item)
 
 
@@ -83,6 +63,37 @@ def create_epub_from_html(
     output_path = os.path.join(output_dir, output_file)
     epub.write_epub(output_path, book, {})
     print(f"✓ EPUB created successfully: {output_file}")
+
+
+def extract_img_items(content_div, html_file: str) -> list[epub.EpubImage]:
+    """Extract images from HTML content and prepare them for EPUB."""
+    img_items = []
+    for img in content_div.find_all("img"):
+        src = str(img.get("src", ""))
+
+        if src.split("/")[0] != "images":
+            raise ValueError("Expecting images to be in images dir.")
+
+        if not src:
+            continue
+
+        html_dir = os.path.dirname(html_file)
+        with open(os.path.join(html_dir, src), "rb") as img_file:
+            img_data = img_file.read()
+
+        # Add image to EPUB
+        img_item = epub.EpubImage()
+        img_item.file_name = src
+        img_item.content = img_data
+
+        # Set correct media type
+        mime_type, _ = mimetypes.guess_type(src)
+        if mime_type:
+            img_item.media_type = mime_type
+
+        img_items.append(img_item)
+
+    return img_items
 
 
 def main():

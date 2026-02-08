@@ -1,5 +1,11 @@
 # Convert HTML Files to EPUBs
 
+## Steps
+
+1. Right click on page ans save as "Webpage complete"
+2. Open HTML file, copy the element with the desired text and save as `article.html`
+
+
 ## HTML 
 
 Prepare an HTML with the desired content in body tags:

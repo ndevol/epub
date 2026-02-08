@@ -84,7 +84,9 @@ def extract_img_items(content_div, html_file: str) -> list[epub.EpubImage]:
         src = str(img.get("src", ""))
 
         if src.split("/")[0] != "images":
-            raise ValueError("Expecting images to be in images dir.")
+            raise ValueError(
+                f"Expecting images to be in images dir instead got {src} for {html_file}."
+            )
 
         if not src:
             continue
@@ -141,7 +143,7 @@ def ddia():
     book.set_language("en")
     for author in ["Martin Kleppmann", "Chris Riccomini"]:
         book.add_author(author)
-    book.set_cover("cover.jpg", open("cover.jpg", "rb").read())
+    book.set_cover("cover.jpg", open("ddia/cover.jpg", "rb").read())
 
     create_epub_from_html(book, book_dir, chapters)
 

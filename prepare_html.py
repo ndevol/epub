@@ -82,14 +82,15 @@ def create_epub_from_html(html_file: str, output_dir: str) -> None:
     print(f"✓ Processed HTML saved: {processed_html_output_path}")
 
 def main():
-    input_file = "ddia/article.html"
-    output_dir = "ddia/Ch1/"
+    for ch_num, f_name in [("10", "10")]:
+        input_file = f"ddia/{f_name}.html"
+        output_dir = f"ddia/Ch{ch_num}/"
 
-    if not os.path.exists(input_file):
-        raise FileNotFoundError(f"Input file '{input_file}' not found.")
+        if not os.path.exists(input_file):
+            raise FileNotFoundError(f"Input file '{input_file}' not found.")
 
-    os.makedirs(output_dir, exist_ok=True)
-    create_epub_from_html(input_file, output_dir)
+        os.makedirs(output_dir, exist_ok=True)
+        create_epub_from_html(input_file, output_dir)
 
 if __name__ == "__main__":
     main()

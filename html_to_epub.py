@@ -11,17 +11,13 @@ from bs4 import BeautifulSoup
 from ebooklib import epub
 
 
-def create_epub_from_html(book: epub.EpubBook, book_dir: str, chapters: list[str]) -> None:
-    """
-    Convert HTML files in a book directory to EPUB format.
-
-    Args:
-        html_file: Path to the HTML file
-        output_file: Path where the EPUB will be saved
-    """
+def create_epub_from_html(
+    book: epub.EpubBook, book_dir: str, chapters: list[tuple[str, str]]
+) -> None:
+    """Convert HTML files in a book directory to EPUB format."""
     chapter_list = []
-    for ch_num, chapter_title in enumerate(chapters, start=1):
-        c, img_items = create_chapter(book_dir, ch_num, chapter_title)
+    for ch_label, chapter_title in chapters:
+        c, img_items = create_chapter(book_dir, ch_label, chapter_title)
         for img_item in img_items:
             book.add_item(img_item)
 
@@ -56,14 +52,14 @@ def create_epub_from_html(book: epub.EpubBook, book_dir: str, chapters: list[str
 
 
 def create_chapter(
-    book_dir: str, ch_num: int, ch_title: str
+    book_dir: str, ch_label: str, ch_title: str
 ) -> tuple[epub.EpubHtml, list[epub.EpubImage]]:
     """Process a chapter's HTML file and extract images for EPUB."""
-    HTML_NAME_TEMPLATE = "Ch{ch_num}/processed_article.html"
-    html_file = os.path.join(book_dir, HTML_NAME_TEMPLATE.format(ch_num=ch_num))
+    HTML_NAME_TEMPLATE = "Ch{ch_label}/processed_article.html"
+    html_file = os.path.join(book_dir, HTML_NAME_TEMPLATE.format(ch_label=ch_label))
 
     if not os.path.exists(html_file):
-        raise FileNotFoundError(f"Missing HTML file for chapter {ch_num}: {html_file}")
+        raise FileNotFoundError(f"Missing HTML file for chapter {ch_label}: {html_file}")
 
     with open(html_file, "r", encoding="utf-8") as f:
         html_content = f.read()
@@ -74,7 +70,7 @@ def create_chapter(
     img_items = extract_img_items(content_div, html_file)
 
     c = epub.EpubHtml()
-    c.file_name = f"chap_{ch_num:02d}.xhtml"
+    c.file_name = f"chap_{ch_label.zfill(2)}.xhtml"
     c.title = ch_title
     c.content = str(content_div)
 
@@ -118,7 +114,24 @@ def ddia():
 
     # List chapter titles. Folders are expected like "Ch1", "Ch2", etc.
     chapters = [
-        "Trade-offs in Data Systems Architecture"
+        ("a", "Preface"),
+        ("1", "Trade-offs in Data Systems Architecture"),
+        ("2", "Defining Nonfunctional Requirements"),
+        ("3", "Data Models and Query Languages"),
+        ("4", "Storage and Retrieval"),
+        ("5", "Encoding and Evolution"),
+        ("6", "Replication"),
+        ("7", "Sharding"),
+        ("8", "Transactions"),
+        ("9", "The Trouble with Distributed Systems"),
+        ("10", "Consistency and Consensus"),
+        ("11", "Batch and Stream Processing"),
+        ("12", "Stream Processing"),
+        ("13", "A Philosophy of Streaming Systems"),
+        ("14", "Doing the Right Thing"),
+        ("b", "Glossary"),
+        ("c", "Index"),
+        ("d", "About the Authors"),
     ]
 
     # Create EPUB book instance with metadata
@@ -128,6 +141,7 @@ def ddia():
     book.set_language("en")
     for author in ["Martin Kleppmann", "Chris Riccomini"]:
         book.add_author(author)
+    book.set_cover("cover.jpg", open("cover.jpg", "rb").read())
 
     create_epub_from_html(book, book_dir, chapters)
 

@@ -60,12 +60,12 @@ def create_epub_from_html(html_file: str, output_dir: str) -> None:
     # Process images: extract them and update src paths
     os.makedirs(os.path.join(output_dir, "images"), exist_ok=True)
     for img in content_div.find_all("img"):
-        src = img.get("src", "")
+        src = str(img.get("src", ""))
         if not src:
             continue
 
         # Normalize the path
-        img_path = src.replace("./", "")  # pyright: ignore
+        img_path = src.replace("./", "")
         img_path = os.path.join(os.path.dirname(html_file), img_path)
 
         if not os.path.exists(img_path):

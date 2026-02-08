@@ -5,7 +5,6 @@ Convert HTML article to EPUB format suitable for Kindle.
 
 import os
 import mimetypes
-import shutil
 from datetime import datetime
 from dataclasses import dataclass
 
@@ -19,29 +18,6 @@ class MetaData:
     title: str
     language: str
     authors: list[str]
-
-
-def clean_html_for_epub(html_content):
-    """Clean and prepare HTML content for EPUB."""
-    soup = BeautifulSoup(html_content, "html.parser")
-
-    # Remove script and style elements
-    for script in soup(["script", "style"]):
-        script.decompose()
-
-    # Remove navigation elements
-    for nav in soup(["nav", "header", "footer"]):
-        nav.decompose()
-
-    # Find the main content
-    content_div = soup.find("div", {"id": "book-content"})
-    if content_div:
-        # Remove the link tags from head
-        for link in content_div.find_all("link"):
-            link.decompose()
-        return str(content_div)
-
-    return str(soup.body) if soup.body else str(soup)
 
 
 def create_epub_from_html(
@@ -67,62 +43,33 @@ def create_epub_from_html(
     soup = BeautifulSoup(html_content, "html.parser")
     content_div = soup.body if soup.body else soup
 
-    # Remove link tags (stylesheets)
-    for link in content_div.find_all("link"):
-        link.decompose()
-
-    # Process images: extract them and update src paths
-    os.makedirs(os.path.join(output_dir, "images"), exist_ok=True)
     for img in content_div.find_all("img"):
-        src = img.get("src", "")
+        src = str(img.get("src", ""))
+        name = os.path.basename(src)
         if not src:
             continue
 
-        # Normalize the path
-        img_path = src.replace("./", "")
-        img_path = os.path.join(os.path.dirname(html_file), img_path)
-
-        if not os.path.exists(img_path):
-            continue
-
-        original_name = os.path.basename(img_path)
-        new_img_path = os.path.join(output_dir, "images", original_name)
-        shutil.copy(img_path, new_img_path)
-
-        with open(new_img_path, "rb") as img_file:
+        html_dir = os.path.dirname(html_file)
+        with open(os.path.join(html_dir, src), "rb") as img_file:
             img_data = img_file.read()
 
         # Add image to EPUB
-        epub_img_name = f"images/{original_name}"
+        epub_img_name = f"images/{name}"
         img_item = epub.EpubImage()
         img_item.file_name = epub_img_name
         img_item.content = img_data
 
         # Set correct media type
-        mime_type, _ = mimetypes.guess_type(img_path)
+        mime_type, _ = mimetypes.guess_type(src)
         if mime_type:
             img_item.media_type = mime_type
 
         book.add_item(img_item)
 
-        # Update img src to point to EPUB resource
-        img["src"] = epub_img_name
-
-        # Remove fixed width/height to allow responsive sizing
-        if "width" in img.attrs:
-            del img["width"]
-        if "height" in img.attrs:
-            del img["height"]
-
-    # Save the processed HTML content
-    processed_html_output_path = os.path.join(output_dir, "processed_article.html")
-    with open(processed_html_output_path, "w", encoding="utf-8") as f:
-        f.write(str(content_div))
-    print(f"✓ Processed HTML saved: {processed_html_output_path}")
 
     c1 = epub.EpubHtml()
     c1.file_name = "chap_01.xhtml"
-    c1.title = meta_data.title
+    c1.title = "Trade-offs in Data Systems Architecture"
     c1.content = str(content_div)
 
     book.add_item(c1)
@@ -142,7 +89,7 @@ def create_epub_from_html(
     book.add_item(style)
 
     # Define Table of Contents
-    book.toc = (c1,)
+    book.toc = (c1,)  # pyright: ignore
 
     # Add navigation files
     book.add_item(epub.EpubNcx())
@@ -154,13 +101,13 @@ def create_epub_from_html(
 
 
 def main():
-    input_file = "ddia/Ch1/article.html"
-    output_dir = "ddia/Ch1/"
+    input_file = "ddia/Ch1/processed_article.html"
+    output_dir = "ddia/"
 
     output_file = "ddia-chapter1.epub"
 
     meta_data = MetaData(
-        identifier_root="ddia-ch1",
+        identifier_root="ddia-",
         title="Designing Data-Intensive Applications, 2nd Edition",
         language="en",
         authors=["Martin Kleppmann", "Chris Riccomini"],

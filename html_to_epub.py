@@ -19,26 +19,11 @@ def create_epub_from_html(book: epub.EpubBook, book_dir: str, chapters: list[str
         html_file: Path to the HTML file
         output_file: Path where the EPUB will be saved
     """
-    HTML_NAME_TEMPLATE = "Ch{ch_num}/processed_article.html"
-
     chapter_list = []
     for ch_num, chapter_title in enumerate(chapters, start=1):
-        html_file = os.path.join(book_dir, HTML_NAME_TEMPLATE.format(ch_num=ch_num))
-
-        with open(html_file, "r", encoding="utf-8") as f:
-            html_content = f.read()
-
-        soup = BeautifulSoup(html_content, "html.parser")
-        content_div = soup.body if soup.body else soup
-
-        for img_item in extract_img_items(content_div, html_file):
+        c, img_items = create_chapter(book_dir, ch_num, chapter_title)
+        for img_item in img_items:
             book.add_item(img_item)
-
-
-        c = epub.EpubHtml()
-        c.file_name = f"chap_{ch_num:02d}.xhtml"
-        c.title = chapter_title
-        c.content = str(content_div)
 
         book.add_item(c)
         chapter_list.append(c)
@@ -68,6 +53,32 @@ def create_epub_from_html(book: epub.EpubBook, book_dir: str, chapters: list[str
     output_path = os.path.join(book_dir, output_file)
     epub.write_epub(output_path, book, {})
     print(f"✓ {os.path.getsize(output_path) / 1024:.1f} KB EPUB created")
+
+
+def create_chapter(
+    book_dir: str, ch_num: int, ch_title: str
+) -> tuple[epub.EpubHtml, list[epub.EpubImage]]:
+    """Process a chapter's HTML file and extract images for EPUB."""
+    HTML_NAME_TEMPLATE = "Ch{ch_num}/processed_article.html"
+    html_file = os.path.join(book_dir, HTML_NAME_TEMPLATE.format(ch_num=ch_num))
+
+    if not os.path.exists(html_file):
+        raise FileNotFoundError(f"Missing HTML file for chapter {ch_num}: {html_file}")
+
+    with open(html_file, "r", encoding="utf-8") as f:
+        html_content = f.read()
+
+    soup = BeautifulSoup(html_content, "html.parser")
+    content_div = soup.body if soup.body else soup
+
+    img_items = extract_img_items(content_div, html_file)
+
+    c = epub.EpubHtml()
+    c.file_name = f"chap_{ch_num:02d}.xhtml"
+    c.title = ch_title
+    c.content = str(content_div)
+
+    return c, img_items
 
 
 def extract_img_items(content_div, html_file: str) -> list[epub.EpubImage]:
@@ -101,7 +112,8 @@ def extract_img_items(content_div, html_file: str) -> list[epub.EpubImage]:
     return img_items
 
 
-def main():
+def ddia():
+    """Designing Data-Intensive Applications, 2nd Edition"""
     book_dir = "ddia"
 
     # List chapter titles. Folders are expected like "Ch1", "Ch2", etc.
@@ -120,4 +132,4 @@ def main():
     create_epub_from_html(book, book_dir, chapters)
 
 if __name__ == "__main__":
-    main()
+    ddia()

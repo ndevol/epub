@@ -30,14 +30,19 @@ def clean_html_for_epub(html_content):
     return str(soup.body) if soup.body else str(soup)
 
 
-def create_epub_from_html(html_file: str, output_dir: str) -> None:
+def create_epub_from_html(html_file: str, output_dir: str, chapter_label: str) -> None:
     """
     Convert an HTML file to EPUB format.
 
     Args:
         html_file: Path to the HTML file
-        output_file: Path where the EPUB will be saved
+        output_dir: Path to the output directory where the EPUB will be saved
+        chapter_label: Label for the chapter (e.g., "Ch10"). The output will be saved to a directory
+            with this name
     """
+    output_path = os.path.join(output_dir, chapter_label)
+    os.makedirs(output_path, exist_ok=True)
+
     with open(html_file, "r", encoding="utf-8") as f:
         html_content = f.read()
 
@@ -49,7 +54,7 @@ def create_epub_from_html(html_file: str, output_dir: str) -> None:
         link.decompose()
 
     # Process images: extract them and update src paths
-    os.makedirs(os.path.join(output_dir, "images"), exist_ok=True)
+    os.makedirs(os.path.join(output_path, "images"), exist_ok=True)
     for img in content_div.find_all("img"):
         src = str(img.get("src", ""))
         if not src:
@@ -63,11 +68,12 @@ def create_epub_from_html(html_file: str, output_dir: str) -> None:
             continue
 
         original_name = os.path.basename(img_path)
-        new_img_path = os.path.join(output_dir, "images", original_name)
+        new_name = f"{chapter_label}_{original_name}"
+        new_img_path = os.path.join(output_path, "images", new_name)
         shutil.copy(img_path, new_img_path)
 
         # Update img src to point to EPUB resource
-        img["src"] = f"images/{original_name}"
+        img["src"] = f"images/{new_name}"
 
         # Remove fixed width/height to allow responsive sizing
         if "width" in img.attrs:
@@ -76,21 +82,24 @@ def create_epub_from_html(html_file: str, output_dir: str) -> None:
             del img["height"]
 
     # Save the processed HTML content
-    processed_html_output_path = os.path.join(output_dir, "processed_article.html")
+    processed_html_output_path = os.path.join(output_path, "processed_article.html")
     with open(processed_html_output_path, "w", encoding="utf-8") as f:
         f.write(str(content_div))
     print(f"✓ Processed HTML saved: {processed_html_output_path}")
 
-def main():
-    for ch_num, f_name in [("10", "10")]:
-        input_file = f"ddia/{f_name}.html"
-        output_dir = f"ddia/Ch{ch_num}/"
+def ddia():
+    """Designing Data-Intensive Applications, 2nd Edition"""
+    f_names = ["preface"] + list(range(1, 15)) + ["glossary", "index", "authors"]
+    for f_name in f_names:
+        output_dir = "ddia"
+        input_file = f"{f_name}.html"
+        chapter_label = f"Ch_{f_name}"
 
-        if not os.path.exists(input_file):
-            raise FileNotFoundError(f"Input file '{input_file}' not found.")
+        input_path = os.path.join(output_dir, input_file)
+        if not os.path.exists(input_path):
+            raise FileNotFoundError(f"Input file '{input_path}' not found.")
 
-        os.makedirs(output_dir, exist_ok=True)
-        create_epub_from_html(input_file, output_dir)
+        create_epub_from_html(input_path, output_dir, chapter_label)
 
 if __name__ == "__main__":
-    main()
+    ddia()

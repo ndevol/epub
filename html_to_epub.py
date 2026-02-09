@@ -55,7 +55,7 @@ def create_chapter(
     book_dir: str, ch_label: str, ch_title: str
 ) -> tuple[epub.EpubHtml, list[epub.EpubImage]]:
     """Process a chapter's HTML file and extract images for EPUB."""
-    HTML_NAME_TEMPLATE = "Ch{ch_label}/processed_article.html"
+    HTML_NAME_TEMPLATE = "Ch_{ch_label}/processed_article.html"
     html_file = os.path.join(book_dir, HTML_NAME_TEMPLATE.format(ch_label=ch_label))
 
     if not os.path.exists(html_file):
@@ -70,7 +70,7 @@ def create_chapter(
     img_items = extract_img_items(content_div, html_file)
 
     c = epub.EpubHtml()
-    c.file_name = f"chap_{ch_label.zfill(2)}.xhtml"
+    c.file_name = f"{ch_label}.xhtml"
     c.title = ch_title
     c.content = str(content_div)
 
@@ -114,26 +114,26 @@ def ddia():
     """Designing Data-Intensive Applications, 2nd Edition"""
     book_dir = "ddia"
 
-    # List chapter titles. Folders are expected like "Ch1", "Ch2", etc.
+    # List chapter titles. Folders are expected like "Ch_1", "Ch_2", etc.
     chapters = [
-        ("a", "Preface"),
-        ("1", "Trade-offs in Data Systems Architecture"),
-        ("2", "Defining Nonfunctional Requirements"),
-        ("3", "Data Models and Query Languages"),
-        ("4", "Storage and Retrieval"),
-        ("5", "Encoding and Evolution"),
-        ("6", "Replication"),
-        ("7", "Sharding"),
-        ("8", "Transactions"),
-        ("9", "The Trouble with Distributed Systems"),
-        ("10", "Consistency and Consensus"),
-        ("11", "Batch and Stream Processing"),
-        ("12", "Stream Processing"),
-        ("13", "A Philosophy of Streaming Systems"),
-        ("14", "Doing the Right Thing"),
-        ("b", "Glossary"),
-        ("c", "Index"),
-        ("d", "About the Authors"),
+        ("preface", "Preface"),
+        ("1", "1. Trade-offs in Data Systems Architecture"),
+        ("2", "2. Defining Nonfunctional Requirements"),
+        ("3", "3. Data Models and Query Languages"),
+        ("4", "4. Storage and Retrieval"),
+        ("5", "5. Encoding and Evolution"),
+        ("6", "6. Replication"),
+        ("7", "7. Sharding"),
+        ("8", "8. Transactions"),
+        ("9", "9. The Trouble with Distributed Systems"),
+        ("10", "10. Consistency and Consensus"),
+        ("11", "11. Batch and Stream Processing"),
+        ("12", "12. Stream Processing"),
+        ("13", "13. A Philosophy of Streaming Systems"),
+        ("14", "14. Doing the Right Thing"),
+        ("glossary", "Glossary"),
+        ("index", "Index"),
+        ("authors", "About the Authors"),
     ]
 
     # Create EPUB book instance with metadata
